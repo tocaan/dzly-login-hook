@@ -5,6 +5,7 @@ namespace DzlyLoginHook\Services;
 use DzlyLoginHook\Models\OtpRequest;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use DzlyClient;
 
 class WhatsappAuthHandler
 {
@@ -60,9 +61,11 @@ class WhatsappAuthHandler
 
     public function generateOtp($serialNumber = null, $model)
     {
+        $requestData = null;
+
         if ($serialNumber) {
             $requestData = OtpRequest::where('serial_number', $serialNumber)
-            ->where('model_type', config("dzly-login-hook.supported_models.$model"))->first();
+                ->where('model_type', config("dzly-login-hook.supported_models.$model"))->first();
 
             if ($requestData) {
                 $requestData->updated_at = Carbon::now();
@@ -74,7 +77,6 @@ class WhatsappAuthHandler
             $requestData = OtpRequest::create([
                 'serial_number' => $serialNumber ?? encrypt(uniqid()),
                 'locale' => app()->getLocale(),
-                'sender_type' => 'whatsapp',
                 'model_type' => config("dzly-login-hook.supported_models.$model"),
             ]);
         }
@@ -186,5 +188,73 @@ class WhatsappAuthHandler
 
             return ["Result" => "false"];
         }
+    }
+
+    public function validatePhoneNumber($country_code = '', $phone_number)
+    {
+        $defaultCountryCode = '965';
+        $invalidResponse = function ($countryCode, $nationalNumber) use ($defaultCountryCode) {
+            return [
+                'success' => false,
+                'country_code' => $countryCode !== '' ? '+'.ltrim($countryCode, '+') : "+$defaultCountryCode",
+                'national_number' => $nationalNumber,
+                'error' => __('apps::frontend.general.phone_not_valid'),
+            ];
+        };
+
+        if ($phone_number === null || $phone_number === '') {
+            return $invalidResponse($country_code, $phone_number);
+        }
+
+        $phone_number = convertArabicIndicDigitsToWesternDigits((string) $phone_number);
+        $country_code = convertArabicIndicDigitsToWesternDigits((string) $country_code);
+        $country_code = ltrim($country_code, '+');
+        $phone_number = preg_replace('/[\s\-()]/', '', $phone_number);
+
+        if ($country_code !== '') {
+            $nationalNumber = ltrim($phone_number, '+');
+            if (str_starts_with($nationalNumber, $country_code)) {
+                $nationalNumber = substr($nationalNumber, strlen($country_code));
+            }
+            $fullMobileNumber = '+'.$country_code.$nationalNumber;
+        } else {
+            $fullMobileNumber = handleMobileValidation($phone_number);
+        }
+
+        if ($fullMobileNumber === null || $fullMobileNumber === '' || ! preg_match('/\+\d+/', $fullMobileNumber)) {
+            return $invalidResponse($country_code, $phone_number);
+        }
+
+        try {
+            $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+            $phoneNumber = $phoneUtil->parse($fullMobileNumber, null);
+            $isValid = $phoneUtil->isValidNumber($phoneNumber);
+            $phoneNumberFormated = $phoneUtil->format($phoneNumber, \libphonenumber\PhoneNumberFormat::E164);
+
+            if ($isValid) {
+                $nationalNumber = $phoneNumber->getNationalNumber();
+                $parsedCountryCode = $phoneNumber->getCountryCode();
+
+                return [
+                    'success' => true,
+                    'phone_number' => $phoneNumberFormated,
+                    'national_number' => $nationalNumber,
+                    'country_code' => "+$parsedCountryCode",
+                    'phone_object' => $phoneNumber,
+                ];
+            }
+
+            return $invalidResponse($country_code, $phone_number);
+        } catch (\libphonenumber\NumberParseException $e) {
+            return $invalidResponse($country_code, $phone_number);
+        }
+    }
+
+    public function convertArabicIndicDigitsToWesternDigits($number)
+    {
+        return preg_replace_callback('/[٠-٩]/u', function ($match) {
+            $arabicNums = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            return array_search($match[0], $arabicNums);
+        }, $number);
     }
 }
