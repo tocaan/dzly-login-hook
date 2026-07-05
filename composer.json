@@ -1,0 +1,25 @@
+{
+  "name": "tocaan/dzly-login-hook",
+  "description": "Dzly Login Hook for Laravel",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "DzlyLoginHook\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "DzlyLoginHook\\Providers\\DzlyLoginHookServiceProvider"
+      ]
+    }
+  },
+  "require": {
+    "php": "^8.1",
+    "illuminate/support": "^7.0|^8.0|^9.0|^10.0|^11.0",
+    "dzly/dzly-api": "^1.2"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

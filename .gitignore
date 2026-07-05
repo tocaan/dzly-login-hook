@@ -1,0 +1,14 @@
+/node_modules
+/public/hot
+/public/storage
+/public/uploads
+/storage/*.key
+/storage/dotenv-editor/backups
+/vendor
+.env
+composer.lock
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
