@@ -6,8 +6,9 @@ use Illuminate\Http\Request;
 use DzlyLoginHook\Events\OtpLoginStatusUpdated;
 use DzlyLoginHook\Http\Requests\DzlyHookLoginRequest;
 use DzlyLoginHook\Services\WhatsappAuthHandler;
-use DzlyLoginHook\Services\Dzly;
+use DzlyLoginHook\Events\DzlyHookEvent;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Event;
 
 class WhatsappAuthHookController extends Controller
 {
@@ -30,7 +31,7 @@ class WhatsappAuthHookController extends Controller
             return response()->json(['status' => 'error', 'message' => 'OTP expired'], 422);
         }
 
-        $handleMobileNumber = validatePhoneNumber('',$parsed['phone_number']);
+        $handleMobileNumber = $this->whatsappAuthHandler->validatePhoneNumber('',$parsed['phone_number']);
 
         if (! $handleMobileNumber['success']) {
             broadcast(new OtpLoginStatusUpdated($otpRequest->serial_number, 'failed', __('Invalid phone number')));
@@ -38,19 +39,9 @@ class WhatsappAuthHookController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Invalid phone number'], 422);
         }
 
-        //phone is verfied , event take otprequest and phone number
-        // $user = $this->auth->loginOrRegister($handleMobileNumber['phone_number']);
-
-        $user->refresh();
-        if ($user->first_login) {
-            $user->update(['name' => $parsed['profile_name']]);
-        }
-
-        $otpRequest->user_id = $user->id;
-        $otpRequest->save();
-
+        Event::dispatch(new DzlyHookEvent($otpRequest, $otpRequest->modelable));
         $message = $this->whatsappAuthHandler->getMessage($otpRequest->locale);
-        Dzly::sendMessage($message, $handleMobileNumber['phone_number']);
+        $this->whatsappAuthHandler->sendDzlyMessage($message, $handleMobileNumber['phone_number']);
 
         broadcast(new OtpLoginStatusUpdated($otpRequest->serial_number, 'success'));
 

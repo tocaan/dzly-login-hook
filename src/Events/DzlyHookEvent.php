@@ -3,7 +3,7 @@ namespace  DzlyLoginHook\Events;
 
 class DzlyHookEvent
 {
-    public function __construct(public $request)
+    public function __construct(public $otpRequest,public $user)
     {
         //
     }

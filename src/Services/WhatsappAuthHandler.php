@@ -5,7 +5,7 @@ namespace DzlyLoginHook\Services;
 use DzlyLoginHook\Models\OtpRequest;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use DzlyClient;
+use Dzly\Http\DzlyClient;
 
 class WhatsappAuthHandler
 {
@@ -206,8 +206,8 @@ class WhatsappAuthHandler
             return $invalidResponse($country_code, $phone_number);
         }
 
-        $phone_number = convertArabicIndicDigitsToWesternDigits((string) $phone_number);
-        $country_code = convertArabicIndicDigitsToWesternDigits((string) $country_code);
+        $phone_number = $this->convertArabicIndicDigitsToWesternDigits((string) $phone_number);
+        $country_code = $this->convertArabicIndicDigitsToWesternDigits((string) $country_code);
         $country_code = ltrim($country_code, '+');
         $phone_number = preg_replace('/[\s\-()]/', '', $phone_number);
 
@@ -218,7 +218,7 @@ class WhatsappAuthHandler
             }
             $fullMobileNumber = '+'.$country_code.$nationalNumber;
         } else {
-            $fullMobileNumber = handleMobileValidation($phone_number);
+            $fullMobileNumber = $this->handleMobileValidation($phone_number);
         }
 
         if ($fullMobileNumber === null || $fullMobileNumber === '' || ! preg_match('/\+\d+/', $fullMobileNumber)) {
@@ -256,5 +256,16 @@ class WhatsappAuthHandler
             $arabicNums = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
             return array_search($match[0], $arabicNums);
         }, $number);
+    }
+    
+    public function handleMobileValidation($mobile)
+    {
+        if (! empty($mobile) && preg_match('/^\d{8}$/', $mobile)) {
+            return '+965'.$mobile;
+        }
+        if (! empty($mobile) && strpos($mobile, '+') !== 0) {
+            return '+'.ltrim($mobile, '+');
+        }
+        return $mobile;
     }
 }
