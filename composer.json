@@ -19,7 +19,7 @@
     "php": "^8.1",
     "illuminate/support": "^7.0|^8.0|^9.0|^10.0|^11.0",
     "dzly/dzly-api": "^1.2",
-    "propaganistas/laravel-phone": "^5.3"
+    "propaganistas/laravel-phone": "^4.0"
   },
   "minimum-stability": "dev",
   "prefer-stable": true
