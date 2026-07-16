@@ -121,9 +121,9 @@ class User extends Authenticatable implements DzlyLoginHook
 ```php
 [
   "success" => true,
-  "phone_number" => "+201283541206",
-  "national_number" => "1283541206",
-  "country_code" => "+20",
+  "phone_number" => "+96590000000",
+  "national_number" => "90000000",
+  "country_code" => "+965",
   "phone_object" => /* libphonenumber\PhoneNumber instance */,
   "profile_name" => "Mostafa Sewidan",
 ]
