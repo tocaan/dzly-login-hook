@@ -8,7 +8,7 @@ use Carbon\Carbon;
 class OtpRequest extends Model
 {
     protected $table = 'dzly_hook_otp_requests';
-    protected $fillable = ['otp', 'mobile', 'sender_type', 'serial_number', 'locale', 'user_id', 'status'];
+    protected $fillable = ['otp', 'mobile', 'profile_name', 'model_type', 'serial_number', 'locale', 'status'];
 
 
     public function getIsExpiredAttribute()

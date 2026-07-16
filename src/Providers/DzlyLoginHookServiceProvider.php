@@ -1,8 +1,6 @@
 <?php
 namespace  DzlyLoginHook\Providers;
 
-use DzlyLoginHook\Components\{Login};
-use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class DzlyLoginHookServiceProvider extends ServiceProvider

@@ -5,7 +5,7 @@ namespace DzlyLoginHook\Services;
 use DzlyLoginHook\Models\OtpRequest;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Dzly\Http\DzlyClient;
+use Dzly\Dzly;
 
 class WhatsappAuthHandler
 {
@@ -178,7 +178,7 @@ class WhatsappAuthHandler
     static function sendDzlyMessage($message, $phone)
     {
         try {
-            $dzly = new DzlyClient(config('dzly.base_url'), config('dzly.token'));
+            $dzly = new Dzly(config('dzly.base_url'), config('dzly.token'));
             $dzly->messages()->send([
                 'phone' => $phone,
                 'message' => $message,
@@ -190,7 +190,7 @@ class WhatsappAuthHandler
         }
     }
 
-    public function validatePhoneNumber($country_code = '', $phone_number)
+    public function validatePhoneNumber($phone_number, $country_code = '')
     {
         $defaultCountryCode = '965';
         $invalidResponse = function ($countryCode, $nationalNumber) use ($defaultCountryCode) {
@@ -257,7 +257,7 @@ class WhatsappAuthHandler
             return array_search($match[0], $arabicNums);
         }, $number);
     }
-    
+
     public function handleMobileValidation($mobile)
     {
         if (! empty($mobile) && preg_match('/^\d{8}$/', $mobile)) {

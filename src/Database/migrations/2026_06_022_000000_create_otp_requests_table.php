@@ -16,12 +16,13 @@ return new class extends Migration
         Schema::create('dzly_hook_otp_requests', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('otp')->nullable();
+            $table->string('profile_name')->nullable();
             $table->string('mobile')->nullable();
-            $table->string('serial_number', 225)->nullable();
+            $table->text('serial_number')->nullable();
        
             $table->string('locale')->default('ar');
             $table->enum('status', ['pending', 'verified'])->default('pending');
-            $table->morphs('model');
+            $table->string('model_type')->nullable();
             $table->timestamps();
         });
     }

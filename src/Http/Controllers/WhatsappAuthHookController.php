@@ -9,6 +9,7 @@ use DzlyLoginHook\Services\WhatsappAuthHandler;
 use DzlyLoginHook\Events\DzlyHookEvent;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Log;
 
 class WhatsappAuthHookController extends Controller
 {
@@ -19,6 +20,7 @@ class WhatsappAuthHookController extends Controller
 
     public function dzlyWebhook(Request $request)
     {
+        Log::info('Dzly webhook received', ['request' => $request->all()]);
         $parsed = $this->whatsappAuthHandler->handleDzlyWebhook($request);
         $otpRequest = $this->whatsappAuthHandler->verifyOtp($parsed['message']);
         if (! $otpRequest) {
@@ -31,13 +33,18 @@ class WhatsappAuthHookController extends Controller
             return response()->json(['status' => 'error', 'message' => 'OTP expired'], 422);
         }
 
-        $handleMobileNumber = $this->whatsappAuthHandler->validatePhoneNumber('',$parsed['phone_number']);
+        $handleMobileNumber = $this->whatsappAuthHandler->validatePhoneNumber($parsed['phone_number']);
 
         if (! $handleMobileNumber['success']) {
             broadcast(new OtpLoginStatusUpdated($otpRequest->serial_number, 'failed', __('Invalid phone number')));
 
             return response()->json(['status' => 'error', 'message' => 'Invalid phone number'], 422);
         }
+
+        $otpRequest->update([
+            'mobile' => $handleMobileNumber['phone_number'],
+            'profile_name' => $parsed['profile_name'],
+        ]);
 
         Event::dispatch(new DzlyHookEvent($otpRequest, $otpRequest->modelable));
         $message = $this->whatsappAuthHandler->getMessage($otpRequest->locale);
@@ -50,7 +57,7 @@ class WhatsappAuthHookController extends Controller
 
     public function requestOtp(Request $request, $model)
     {
-        $otp = $this->whatsappAuthHandler->generateOtp($request->serial_number,$model);
+        $otp = $this->whatsappAuthHandler->generateOtp($request->serial_number, $model);
         return response()->json(['status' => 'success', 'data' => $otp], 200);
     }
 
@@ -70,9 +77,10 @@ class WhatsappAuthHookController extends Controller
             return response()->json(['status' => 'error', 'message' => 'OTP expired'], 422);
         }
 
-        $user = $requestStatus->user;
-        $requestStatus->delete();
+        $handleMobileNumber = $this->whatsappAuthHandler->validatePhoneNumber($requestStatus->mobile);
+        $handleMobileNumber['profile_name'] = $requestStatus->profile_name;
+        // $requestStatus->delete();
 
-        return $this->tokenResponse($user);
+        return $requestStatus->model_type::loggedInResponse($handleMobileNumber);
     }
 }
