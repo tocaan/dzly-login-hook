@@ -132,9 +132,9 @@ class User extends Authenticatable implements DzlyLoginHook
 | Key | Type | Description |
 |---|---|---|
 | `success` | `bool` | Whether phone validation succeeded |
-| `phone_number` | `string` | E.164 formatted number (e.g. `+201283541206`) |
+| `phone_number` | `string` | E.164 formatted number (e.g. `+96590000000`) |
 | `national_number` | `string` | National number without country code |
-| `country_code` | `string` | Country dial code with `+` (e.g. `+20`) |
+| `country_code` | `string` | Country dial code with `+` (e.g. `+965`) |
 | `phone_object` | `libphonenumber\PhoneNumber` | Parsed phone number object |
 | `profile_name` | `string\|null` | WhatsApp profile name from the inbound message |
 
