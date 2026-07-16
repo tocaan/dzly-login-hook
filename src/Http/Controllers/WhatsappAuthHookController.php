@@ -79,7 +79,7 @@ class WhatsappAuthHookController extends Controller
 
         $handleMobileNumber = $this->whatsappAuthHandler->validatePhoneNumber($requestStatus->mobile);
         $handleMobileNumber['profile_name'] = $requestStatus->profile_name;
-        // $requestStatus->delete();
+        $requestStatus->delete();
 
         return $requestStatus->model_type::loggedInResponse($handleMobileNumber);
     }
