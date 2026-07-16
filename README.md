@@ -146,6 +146,87 @@ class User extends Authenticatable implements DzlyLoginHook
 | `ANY` | `/api/dzly-login-hook/dzly-webhook` | Inbound Dzly webhook (OTP verification) |
 | `POST` | `/api/dzly-login-hook/hook-otp-login` | Complete login after OTP is verified; calls `loggedInResponse` on the model |
 
+### Request OTP
+
+Generates (or refreshes) an OTP for the given model and returns a WhatsApp deep link the user taps to send the OTP back to your Dzly number.
+
+- **URL:** `POST /api/dzly-login-hook/request-otp/{model}`
+- **URL parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `model` | yes | A key from `supported_models` in `config/dzly-login-hook.php` (e.g. `user`) |
+
+- **Body parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `serial_number` | no | Existing session/serial number. If provided and found, the OTP is refreshed for that request; otherwise a new one is generated |
+
+- **Example request:**
+
+```bash
+curl -X POST "{{YOUR_PROJECT_URL}}/api/dzly-login-hook/request-otp/user" \
+  -H "Accept: application/json" \
+  -d "serial_number=OPTIONAL_EXISTING_SERIAL"
+```
+
+- **Example response:**
+
+```json
+{
+    "status": "success",
+    "data": {
+        "request_id": 12,
+        "is_expired": false,
+        "expires_at": "2026-07-16T10:05:00+00:00",
+        "serial_number": "eyJpdiI6...",
+        "channel": "otp.5a1f...",
+        "otp": "12" ,
+        "url": "https://wa.me/9665XXXXXXX?text=..."
+    }
+}
+```
+
+| Field | Description |
+|---|---|
+| `request_id` | ID of the OTP request; pass it to the login endpoint |
+| `is_expired` | Whether the OTP is already expired |
+| `expires_at` | ISO 8601 expiry timestamp (5 minutes after creation/refresh) |
+| `serial_number` | Session identifier; reuse it on subsequent calls and on login |
+| `channel` | Broadcast channel name to listen on for login status updates |
+| `otp` | The encrypted OTP embedded in the WhatsApp message |
+| `url` | `wa.me` deep link the user opens to send the OTP to your Dzly number |
+
+After the user sends the message, Dzly calls the `dzly-webhook` endpoint, which verifies the OTP and broadcasts an `OtpLoginStatusUpdated` event on `channel`.
+
+### Login
+
+Completes the login once the OTP has been verified via the webhook. Returns whatever your model's `loggedInResponse` returns.
+
+- **URL:** `POST /api/dzly-login-hook/hook-otp-login`
+- **Body parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `request_id` | yes | The `request_id` returned by the request-otp endpoint (must exist in `dzly_hook_otp_requests`) |
+| `serial_number` | yes | The `serial_number` returned by the request-otp endpoint |
+
+- **Example request:**
+
+```bash
+curl -X POST "{{YOUR_PROJECT_URL}}/api/dzly-login-hook/hook-otp-login" \
+  -H "Accept: application/json" \
+  -d "request_id=12" \
+  -d "serial_number=eyJpdiI6..."
+```
+
+- **Responses:**
+  - `200` - The `JsonResponse` from your model's `loggedInResponse($phoneData)` (see [Implement the `DzlyLoginHook` contract](#8-implement-the-dzlyloginhook-contract)).
+  - `422` - `{"status": "error", "message": "Request not found"}` if the request/serial does not match.
+  - `422` - `{"status": "error", "message": "Request is pending"}` if the OTP has not been verified yet.
+  - `422` - `{"status": "error", "message": "OTP expired"}` if the OTP has expired.
+
 ## License
 
 MIT
